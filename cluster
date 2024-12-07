@@ -1,0 +1,92 @@
+# Criando os arquivos necessários para o mini projeto em Docker Swarm.
+
+# Diretórios de trabalho
+import os
+
+project_dir = "/mnt/data/DockerSwarmCluster"
+os.makedirs(project_dir, exist_ok=True)
+
+# Arquivo Dockerfile para o serviço web
+dockerfile_content = """
+# Usando uma imagem básica do Nginx
+FROM nginx:latest
+
+# Copiando um arquivo HTML simples para o container
+COPY index.html /usr/share/nginx/html/index.html
+"""
+
+# Arquivo HTML simples para o serviço
+index_html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Swarm Cluster</title>
+</head>
+<body>
+    <h1>Bem-vindo ao Cluster Docker Swarm!</h1>
+    <p>Este é um exemplo simples de serviço distribuído.</p>
+</body>
+</html>
+"""
+
+# Script de inicialização
+init_script_content = """
+#!/bin/bash
+
+# Passo 1: Inicializar o Swarm no Manager
+docker swarm init --advertise-addr $(hostname -I | awk '{print $1}')
+
+# Passo 2: Criar uma rede overlay
+docker network create --driver overlay cluster_network
+
+# Passo 3: Criar o serviço replicado
+docker service create \
+  --name web_service \
+  --replicas 3 \
+  --network cluster_network \
+  -p 8080:80 \
+  web_service
+
+echo "Cluster configurado. Acesse o serviço em http://<IP_DO_MANAGER>:8080"
+"""
+
+# Arquivo README
+readme_content = """
+# Mini Projeto: Cluster Docker Swarm
+
+Este projeto demonstra como criar um cluster Docker Swarm com um serviço replicado simples utilizando Nginx.
+
+## Estrutura
+- **Dockerfile**: Define o serviço Docker.
+- **index.html**: Página HTML exibida pelo serviço.
+- **init_cluster.sh**: Script de configuração do cluster.
+- **README.md**: Documentação do projeto.
+
+## Instruções
+1. Instale o Docker nas máquinas.
+2. No manager, execute o script `init_cluster.sh` para inicializar o cluster e criar o serviço.
+3. Adicione workers ao cluster usando o comando `docker swarm join` fornecido após a inicialização.
+4. Acesse o serviço em `http://<IP_DO_MANAGER>:8080`.
+"""
+
+# Caminhos dos arquivos
+files = {
+    "Dockerfile": dockerfile_content,
+    "index.html": index_html_content,
+    "init_cluster.sh": init_script_content,
+    "README.md": readme_content,
+}
+
+# Criando os arquivos no diretório do projeto
+for filename, content in files.items():
+    with open(os.path.join(project_dir, filename), "w") as file:
+        file.write(content)
+
+# Compactando o projeto
+import shutil
+
+output_zip = "/mnt/data/DockerSwarmCluster.zip"
+shutil.make_archive(output_zip.replace(".zip", ""), 'zip', project_dir)
+output_zip
